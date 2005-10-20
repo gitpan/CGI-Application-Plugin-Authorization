@@ -1,0 +1,31 @@
+---
+name: CGI-Application-Plugin-Authorization
+version: 0.01
+author:
+  - Cees Hek <ceeshek@gmail.com>
+abstract: Authorization framework for CGI::Application
+license: perl
+requires:
+  CGI::Application: 4
+  Class::ISA: 0
+  UNIVERSAL::require: 0
+recommends:
+  Apache::Htgroup: 0
+  CGI::Application::Plugin::Authentication: 0
+build_requires:
+  Test::Exception: 0
+  Test::More: 0
+  Test::Warn: 0
+provides:
+  CGI::Application::Plugin::Authorization:
+    file: lib/CGI/Application/Plugin/Authorization.pm
+    version: 0.01
+  CGI::Application::Plugin::Authorization::Driver:
+    file: lib/CGI/Application/Plugin/Authorization/Driver.pm
+  CGI::Application::Plugin::Authorization::Driver::Dummy:
+    file: lib/CGI/Application/Plugin/Authorization/Driver/Dummy.pm
+  CGI::Application::Plugin::Authorization::Driver::Generic:
+    file: lib/CGI/Application/Plugin/Authorization/Driver/Generic.pm
+  CGI::Application::Plugin::Authorization::Driver::HTGroup:
+    file: lib/CGI/Application/Plugin/Authorization/Driver/HTGroup.pm
+generated_by: Module::Build version 0.2611

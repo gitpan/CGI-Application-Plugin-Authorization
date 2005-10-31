@@ -19,5 +19,6 @@ Module::Build->new(
     },
     create_makefile_pl => 'traditional',
     dist_author => 'Cees Hek <ceeshek@gmail.com>',
+    add_to_cleanup => [qw(t/sqlite.db)],
 )->create_build_script;
 

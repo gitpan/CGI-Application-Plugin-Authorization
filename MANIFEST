@@ -1,6 +1,7 @@
 Build.PL
 lib/CGI/Application/Plugin/Authorization.pm
 lib/CGI/Application/Plugin/Authorization/Driver.pm
+lib/CGI/Application/Plugin/Authorization/Driver/DBI.pm
 lib/CGI/Application/Plugin/Authorization/Driver/Dummy.pm
 lib/CGI/Application/Plugin/Authorization/Driver/Generic.pm
 lib/CGI/Application/Plugin/Authorization/Driver/HTGroup.pm
@@ -13,6 +14,7 @@ t/02_config.t
 t/03_username.t
 t/04_forbidden.t
 t/50_driver.t
+t/50_driver_dbi.t
 t/50_driver_generic.t
 t/50_driver_htgroup.t
 t/98_pod.t

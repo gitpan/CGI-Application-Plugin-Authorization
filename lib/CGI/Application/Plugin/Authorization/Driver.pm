@@ -116,7 +116,8 @@ sub authz { return $_[0]->{authz} }
 
 =head2 username
 
-This will return the name of the current logged in user.
+This will return the name of the current logged in user by calling the
+C<username> method documented in L<CGI::Application::Plugin::Authorization>.
 
 =cut
 
@@ -128,8 +129,11 @@ sub username {
 
 =head2 authorize
 
-This method will verify that the currently logged in user passes the authorization checks
-based on the given parameters.
+ # User must be in the admin group to have access to this runmode
+ return $self->authz->forbidden unless $self->authz->authorize('admin');
+
+This method will verify that the currently logged in user (as found through L<username>)
+passes the authorization checks based on the given parameters, usually a list of groups.
 
 =cut
 

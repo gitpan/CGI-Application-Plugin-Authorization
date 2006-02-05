@@ -1,0 +1,17 @@
+Revision history for Perl extension CGI::Application::Plugin::Authorization.
+
+0.03  Sun Feb  5 18:10:30 EST 2006
+
+    - Lots of doc patches (Mark Stosberg)
+    - Remove the DSN option in the DBI driver and suggest
+      that users us the CGI::Application::Plugin::DBH module
+      instead (Mark Stosberg)
+
+0.02  Mon Oct 31 11:56:09 EST 2005
+
+    - Add DBI Driver
+    - updated examples to conform to the new DBI driver
+
+0.01
+
+    - original version

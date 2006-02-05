@@ -18,7 +18,6 @@ CGI::Application::Plugin::Authorization::Driver::DBI - DBI Authorization driver
  # Simple task based authentication
  __PACKAGE__->authz->config(
      DRIVER => [ 'DBI',
-         DBH         => $self->dbh,
          TABLES      => ['account', 'task'],
          JOIN_ON     => 'account.id = task.accountid',
          USERNAME    => 'account.name',
@@ -38,6 +37,11 @@ This Authorization driver uses the DBI module to allow you to gather
 authorization information from any database for which there is a DBD module.
 You can either provide an active database handle, or provide the parameters
 necesary to connect to the database.
+
+=head2 DBH
+
+The DBI database handle to use. Defaults to C<$self->dbh()>, which is provided and configured
+through L<CGI::Application::Plugin::DBH|CGI::Application::Plugin::DBH>
 
 When describing the database structure you have two options:
 
@@ -151,7 +155,7 @@ using the parameters passed to the authorize method.
  # Simple task based authentication
  __PACKAGE__->authz->config(
      DRIVER => [ 'DBI',
-         DBH         => $self->dbh,
+         # the handle comes from $self->dbh, via the "DBH" plugin. 
          TABLES      => ['account', 'task'],
          JOIN_ON     => 'account.id = task.accountid',
          USERNAME    => 'account.name',
@@ -168,7 +172,6 @@ using the parameters passed to the authorize method.
  # IP address configuration
  __PACKAGE__->authz('byIP')->config(
      DRIVER => [ 'DBI',
-         DBH => $self->dbh,
          SQL => 'SELECT count(*)
                    FROM account JOIN ip ON (account.id = ip.accountid)
                   WHERE account.name = ?
@@ -184,7 +187,6 @@ using the parameters passed to the authorize method.
  # IP address configuration
  __PACKAGE__->authz->config(
      DRIVER => [ 'DBI',
-         DBH => $self->dbh,
          SQL => 'SELECT count(*)
                    FROM account
                    JOIN ip ON (account.id = ip.accountid)
@@ -226,17 +228,10 @@ sub authorize_user {
     my $dbh;
     if ( $options{DBH} ) {
         $dbh = $options{DBH};
-    }
-    elsif ( $options{DSN} ) {
-        no warnings qw(uninitialized);
-        $dbh = DBI->connect(
-            $options{DSN},         $options{DB_USER},
-            $options{DB_PASSWORD}, $options{DBI_OPTIONS}
-            )
-            or die $DBI::errstr;
-    }
-    else {
-        die "No DBH or DSN parameter passed to the DBI Driver";
+    } elsif ( $self->authen->_cgiapp->can('dbh') ) {
+        $dbh = $self->authen->_cgiapp->dbh;
+    } else {
+        die "No DBH or passed to the DBI Driver, and no dbh() method detected";
     }
 
     # See if the user provided an SQL option

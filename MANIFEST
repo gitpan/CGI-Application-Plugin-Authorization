@@ -1,4 +1,5 @@
 Build.PL
+Changes
 lib/CGI/Application/Plugin/Authorization.pm
 lib/CGI/Application/Plugin/Authorization/Driver.pm
 lib/CGI/Application/Plugin/Authorization/Driver/DBI.pm

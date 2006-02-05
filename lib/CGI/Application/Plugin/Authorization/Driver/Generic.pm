@@ -20,8 +20,12 @@ CGI::Application::Plugin::Authorization::Driver::Generic - Generic Authorization
      testuser => 'testgroup',
  );
 
+ # See docs for authorize_user below for an explanation
  __PACKAGE__->authz->config(
-     DRIVER => [ 'Generic', sub { return $groupmap{$_[0]} eq $_[1] ? 1 : 0 } ],
+     DRIVER => [ 'Generic', sub {
+        my ($username,$group) = @_;
+        return ($groupmap{$username} eq $group);
+     } ],
  );
 
 
@@ -29,8 +33,11 @@ CGI::Application::Plugin::Authorization::Driver::Generic - Generic Authorization
 
 =head2 authorize_user
 
-This method accepts a username followed by a list of group names and will return
-true if the user belongs to at least one of the groups.
+This method accepts a username followed by a list of group names and will
+return true if the user belongs to at least one of the groups.
+
+It does this by calling the provided callback with the username and a
+single group until a match is found.
 
 =cut
 

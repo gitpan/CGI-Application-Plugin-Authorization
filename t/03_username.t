@@ -27,7 +27,7 @@ use lib './t';
 
 SKIP: {
     eval "require CGI::Application::Plugin::Authentication";
-    skip "CGI::Application::Plugin::Authentication required for this test", 3 if $@;
+    skip "CGI::Application::Plugin::Authentication required for this test", 1 if $@;
 
     {
         package TestAppUsernameAuthen;

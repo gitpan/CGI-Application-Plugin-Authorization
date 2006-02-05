@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authorization;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 our %__CONFIG;
 
@@ -26,10 +26,10 @@ sub import {
     }
     elsif ( !UNIVERSAL::can( $callpkg, 'add_callback' ) ) {
         warn
-            "You are using an older version of CGI::Application that does not support callbacks, so the prerun method can not be registered automatically (Lookup the prerun_callback method in the docs for more info)";
+            "You are using an older version of CGI::Application that does not support callbacks, so the prerun method can not be registered automatically (Lookup 'CGI::Application CALLBACKS' in the docs for more info)";
     }
     else {
-        $callpkg->add_callback( prerun => \&prerun_callback );
+        $callpkg->add_callback( prerun => \&setup_runmodes );
     }
 }
 
@@ -226,7 +226,7 @@ as the only parameter.  This is not a required option, and can be omitted if
 you use the Authentication plugin, or if your authentication system sets
 $ENV{REMOTE_USER}.
 
-  GET_USERNAME => sub { my $authz = shift; return $self->cgiapp->my_username }
+  GET_USERNAME => sub { my $authz = shift; return $authz->cgiapp->my_username }
 
 
 =back
@@ -445,7 +445,7 @@ sub drivers {
         foreach my $driver_config (@$driver_configs) {
             my ( $drivername, @params ) = @$driver_config;
             # Load the the class for this driver
-            my $driver_class = _find_deligate_class(
+            my $driver_class = _find_delegate_class(
                 'CGI::Application::Plugin::Authorization::Driver::'
                     . $drivername, $drivername
                 )
@@ -475,43 +475,31 @@ sub cgiapp {
 
 =head2 setup_runmodes
 
-This method is called during the prerun stage to register some custom
-runmodes that the Authorization plugin requires in order to function.
+This CGI::App method is called during the prerun stage to register the "authz_forbidden" method
+that the Authorization plugin requires in order to function.
 
 =cut
 
 sub setup_runmodes {
     my $self   = shift;
-    my $config = $self->_config;
-
-    $self->cgiapp->run_modes( authz_forbidden => \&authz_forbidden, );
+    $self->run_modes( authz_forbidden => \&authz_forbidden, );
     return;
 }
 
 =head1 CGI::Application CALLBACKS
 
-=head2 prerun_callback
+We'll automatically add the C<authz_forbidden> run mode if you are using
+CGI::Application 4.0 or greater. 
 
-This method is a CGI::Application prerun callback that will be automatically
-registered for you if you are using CGI::Application 4.0 or greater.  If you
-are using an older version of CGI::Application you will have to create your own
-cgiapp_prerun method and make sure you call this method from there.
+If you are using an older version of CGI::Application you will need to add it yourself.
 
  sub cgiapp_prerun {
     my $self = shift;
 
-    $self->CGI::Application::Plugin::Authorization::prerun_callback();
+    $self->run_modes( authz_forbidden => \&CGI::Application::Plugin::Authorization::authz_forbidden, );
  }
 
 =cut
-
-sub prerun_callback {
-    my $self  = shift;
-    my $authz = $self->authz;
-
-    # setup the default login and logout runmodes
-    $authz->setup_runmodes;
-}
 
 =head2 forbidden
 
@@ -571,7 +559,7 @@ sub authz_forbidden {
 ### Helper methods
 ###
 
-sub _find_deligate_class {
+sub _find_delegate_class {
     foreach my $class (@_) {
         $class->require && return $class;
     }

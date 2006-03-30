@@ -1,5 +1,14 @@
 Revision history for Perl extension CGI::Application::Plugin::Authorization.
 
+0.04
+
+    - New SimpleGroup driver provided by Mark Stosberg (See docs for usage)
+    - Implemented the __USERNAME__ and __GROUP__ constraint variables
+      in the DBI driver which were already documented in the examples
+      given in the Authorization module docs 
+    - the DBI driver was assuming that a USERNAME option was being passed
+      in, which could result in an invalid SQL statement (Hugh Esco)
+
 0.03  Sun Feb  5 18:10:30 EST 2006
 
     - Lots of doc patches (Mark Stosberg)

@@ -4,7 +4,7 @@ use lib qw(t);
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite required for this test" if $@;
 
-plan tests => 18;
+plan tests => 22;
 
 use strict;
 use warnings;
@@ -85,6 +85,29 @@ ok(! $driver->authorize_user('baduser', 'task1'), 'Failed authorization');
 TestAppDriverDBISimple->run_authz_success_tests( [qw(task1)], [qw(task2)] );
 
 TestAppDriverDBISimple->run_authz_failure_tests( [qw(badtask)], [qw(badtask otherbadtask)] );
+
+{
+
+    package TestAppDriverDBIGroup;
+
+    use base qw(TestAppDriver);
+
+    __PACKAGE__->authz->config(
+        DRIVER => [ 'DBI',
+                DBH         => $dbh,
+                TABLE       => ['account A', 'task T'],
+                JOIN_ON     => 'A.id = T.userid',
+                CONSTRAINTS => { 'A.name' => '__USERNAME__', 'T.name' => '__GROUP__' },
+        ],
+        GET_USERNAME => sub { 'testuser' },
+    );
+
+}
+
+
+TestAppDriverDBIGroup->run_authz_success_tests( [qw(task1)], [qw(task2)] );
+
+TestAppDriverDBIGroup->run_authz_failure_tests( [qw(badtask)], [qw(badtask otherbadtask)] );
 
 {
 

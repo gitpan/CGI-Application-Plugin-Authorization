@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use Test::More tests => 19;
+use Test::More tests => 18;
 use Test::Exception;
 use Test::Warn;
 use Scalar::Util;
@@ -47,7 +47,8 @@ lives_ok  { TestAppConfig->new->authz->config(FORBIDDEN_RUNMODE => 'runmode' ) }
 # test FORBIDDEN_URL
 throws_ok { TestAppConfig->new->authz->config(FORBIDDEN_URL => { }) } qr/parameter FORBIDDEN_URL is not a string/, 'config dies when FORBIDDEN_URL is passed a hashref';
 lives_ok  { TestAppConfig->new->authz->config(FORBIDDEN_URL => '/' ) } 'config accepts FORBIDDEN_URL as a string';
-warning_like  { TestAppConfig->new->authz->config(FORBIDDEN_URL => '/forbidden.html', FORBIDDEN_RUNMODE => 'forbidden' ) } qr/authz config warning:  parameter FORBIDDEN_URL ignored since we already have FORBIDDEN_RUNMODE/, "FORBIDDEN_URL ignored when FORBIDDEN_RUNMODE is configured";
+#### Disable since Sub::Uplevel 0.09 spits out useless warnings under perl 5.8.8
+#warning_like  { TestAppConfig->new->authz->config(FORBIDDEN_URL => '/forbidden.html', FORBIDDEN_RUNMODE => 'forbidden' ) } qr/authz config warning:  parameter FORBIDDEN_URL ignored since we already have FORBIDDEN_RUNMODE/, "FORBIDDEN_URL ignored when FORBIDDEN_RUNMODE is configured";
 
 # test GET_USERNAME
 throws_ok { TestAppConfig->new->authz->config(GET_USERNAME => { }) } qr/parameter GET_USERNAME is not a CODE reference/, 'config dies when GET_USERNAME is passed a hashref';

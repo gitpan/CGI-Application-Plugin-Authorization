@@ -1,8 +1,8 @@
 ---
 name: CGI-Application-Plugin-Authorization
-version: 0.03
+version: 0.04
 author:
-  - Cees Hek <ceeshek@gmail.com>
+  - 'Cees Hek <ceeshek@gmail.com>'
 abstract: |-
   Authorization framework for
   CGI::Application
@@ -21,7 +21,7 @@ build_requires:
 provides:
   CGI::Application::Plugin::Authorization:
     file: lib/CGI/Application/Plugin/Authorization.pm
-    version: 0.03
+    version: 0.04
   CGI::Application::Plugin::Authorization::Driver:
     file: lib/CGI/Application/Plugin/Authorization/Driver.pm
   CGI::Application::Plugin::Authorization::Driver::DBI:
@@ -32,4 +32,4 @@ provides:
     file: lib/CGI/Application/Plugin/Authorization/Driver/Generic.pm
   CGI::Application::Plugin::Authorization::Driver::HTGroup:
     file: lib/CGI/Application/Plugin/Authorization/Driver/HTGroup.pm
-generated_by: Module::Build version 0.2611
+generated_by: Module::Build version 0.26

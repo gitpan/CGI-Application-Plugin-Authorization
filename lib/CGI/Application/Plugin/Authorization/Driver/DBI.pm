@@ -256,6 +256,7 @@ sub authorize_user {
     # We need to check for values indicate they should be replaced by
     # a parameter (__PARAM_\d+__)
     my %constraints;
+    my $used_username = 0;
     if ( $options{CONSTRAINTS} ) {
         die "CONSTRAINTS must be a hashref"
             unless ref $options{CONSTRAINTS} eq 'HASH';
@@ -263,12 +264,23 @@ sub authorize_user {
             if ( $value =~ /^__PARAM_(\d+)__$/ ) {
                 $value = $params[ $1 - 1 ];
             }
+            elsif ( $value =~ /^__USERNAME__$/ ) {
+                $value = $username;
+                $used_username = 1;
+            }
+            elsif ( $value =~ /^__GROUP__$/ ) {
+                $value = $params[ 0 ];
+            }
             $constraints{$column} = $value;
         }
     }
 
-    # Add in the username constraint
-    $constraints{$options{USERNAME}} = $username;
+    # Add in the username constraint if it was provided
+    if ($options{USERNAME}) {
+        $constraints{$options{USERNAME}} = $username;
+    } elsif ( ! $used_username && ! $options{NO_USERNAME} ) {
+        warn "Your configuration did not provide for a match against a username column, make sure to provide the USERNAME option, or use the special __USERNAME__ variable in your CONSTRAINTS";
+    }
 
     # If we have multiple tables, then we need a join constraint
     my $join_on = $options{JOIN_ON};

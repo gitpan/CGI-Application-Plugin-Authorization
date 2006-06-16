@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authorization;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 our %__CONFIG;
 
@@ -341,7 +341,7 @@ L<CGI::Application::Plugin::Authorization> object when it is required.
 
 sub instance {
     my $class  = shift;
-    my $name   = shift;
+    my $name   = shift ||'';
     my $cgiapp = shift;
     die
         "CGI::Application::Plugin::Authorization->instance must be called with a CGI::Application object or class name"
@@ -350,10 +350,10 @@ sub instance {
 
     if ( ref $cgiapp ) {
         # being called from a CGI::Application object
-        $cgiapp->{__CAP_AUTHORIZATION_INSTANCE}
+        $cgiapp->{__CAP_AUTHORIZATION_INSTANCE}->{$name}
             = $class->new( $name, $cgiapp )
-            unless defined $cgiapp->{__CAP_AUTHORIZATION_INSTANCE};
-        return $cgiapp->{__CAP_AUTHORIZATION_INSTANCE};
+            unless defined $cgiapp->{__CAP_AUTHORIZATION_INSTANCE}->{$name};
+        return $cgiapp->{__CAP_AUTHORIZATION_INSTANCE}->{$name};
     }
     else {
         # being called from a CGI::Application class

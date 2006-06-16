@@ -1,6 +1,10 @@
 Revision history for Perl extension CGI::Application::Plugin::Authorization.
 
-0.04
+0.05  Fri Jun 16 19:48:43 EDT 2006
+
+    - Fix caching of named configs (reported by Michael Petnuch)
+
+0.04  Wed Mar 29 21:03:24 EST 2006
 
     - New SimpleGroup driver provided by Mark Stosberg (See docs for usage)
     - Implemented the __USERNAME__ and __GROUP__ constraint variables

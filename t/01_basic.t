@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use Test::More tests => 16;
+use Test::More tests => 18;
 use Test::Exception;
 use Scalar::Util;
 
@@ -71,8 +71,12 @@ use warnings;
 my $t1_obj = TestAppBasic->new();
 my $authz = $t1_obj->authz;
 my $authz_again = $t1_obj->authz;
+my $authz_named = $t1_obj->authz('named');
 
 isa_ok($authz, 'CGI::Application::Plugin::Authorization');
+
+ok(Scalar::Util::refaddr($authz) != Scalar::Util::refaddr($authz_named), "Named objects have different address");
+ok(Scalar::Util::refaddr($t1_obj->authz) != Scalar::Util::refaddr($authz_named), "Caching named objects works correctly");
 
 
 my $t2_obj = TestAppBasic->new();
@@ -80,7 +84,7 @@ my $authz2 = $t2_obj->authz;
 
 isa_ok($authz2, 'CGI::Application::Plugin::Authorization');
 
-ok(Scalar::Util::refaddr($authz) != Scalar::Util::refaddr($authz2), "Objects have same different address");
+ok(Scalar::Util::refaddr($authz) != Scalar::Util::refaddr($authz2), "Objects have different address");
 is(Scalar::Util::refaddr($authz), Scalar::Util::refaddr($authz_again), "Objects have same address");
 
 
@@ -91,3 +95,4 @@ throws_ok(sub { CGI::Application::Plugin::Authorization->instance }, qr/CGI::App
 isa_ok($authz->drivers, 'CGI::Application::Plugin::Authorization::Driver::Dummy');
 
 ok($authz->authorize, 'Dummy authorizes everything');
+

@@ -1,5 +1,12 @@
 Revision history for Perl extension CGI::Application::Plugin::Authorization.
 
+0.06  
+
+    - Add 'authz_runmodes' method which can register runmodes that should
+      be protected (George Hartzell)
+    - Perform redirection the same way that CAP::Authentication does.
+      (Graham TerMarsch)
+
 0.05  Fri Jun 16 19:48:43 EDT 2006
 
     - Fix caching of named configs (reported by Michael Petnuch)

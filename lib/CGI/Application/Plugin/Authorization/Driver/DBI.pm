@@ -40,7 +40,7 @@ necesary to connect to the database.
 
 =head2 DBH
 
-The DBI database handle to use. Defaults to C<$self->dbh()>, which is provided and configured
+The DBI database handle to use. Defaults to C<$self-E<gt>dbh()>, which is provided and configured
 through L<CGI::Application::Plugin::DBH|CGI::Application::Plugin::DBH>
 
 When describing the database structure you have two options:

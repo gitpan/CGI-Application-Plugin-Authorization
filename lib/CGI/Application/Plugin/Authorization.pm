@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authorization;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 our %__CONFIG;
 
@@ -29,7 +29,7 @@ sub import {
             "You are using an older version of CGI::Application that does not support callbacks, so the prerun method can not be registered automatically (Lookup 'CGI::Application CALLBACKS' in the docs for more info)";
     }
     else {
-        $callpkg->add_callback( prerun => \&setup_runmodes );
+        $callpkg->add_callback( prerun => \&prerun_callback );
     }
 }
 
@@ -304,6 +304,81 @@ sub config {
     }
 }
 
+=head2 authz_runmodes
+
+This method takes a list of runmodes that are to be authorized.  If a
+user tries to access one of these runmodes, then they will be
+redirected to the forbidden page unless they are a member of the
+proper group.  The runmode names can be a list of simple strings,
+regular expressions, or special directives that start with a colon.
+This method is cumulative, so if it is called multiple times, the new
+values are added to existing entries.  It returns a list of all
+entries that have been saved so far.
+
+=over 4
+
+=item :all - All runmodes in this module will require authorization
+
+=back
+
+  # match all runmodes
+  __PACKAGE__->authz->authz_runmodes([':all' => 'admin']);
+
+  # only protect runmodes one and two
+  __PACKAGE__->authz->authz_runmodes([one => 'admin'],
+                                     [two => 'admin'],
+                                    );
+
+  # protect only runmodes that start with auth_
+  __PACKAGE__->authz->authz_runmodes([qr/^authz_/ => 'admin');
+
+  # protect all runmodes that *do not* start with public_
+  __PACKAGE__->authz->authz_runmodes([qr/^(?!public_)/ => 'admin']);
+
+=cut
+
+sub authz_runmodes {
+    my $self   = shift;
+    my $config = $self->_config;
+
+    $config->{AUTHZ_RUNMODES} ||= [];
+    push @{$config->{AUTHZ_RUNMODES}}, @_ if @_;
+
+    return @{$config->{AUTHZ_RUNMODES}};
+}
+
+=head2 is_authz_runmode
+
+This method accepts the name of a runmode, and if that runmode is a
+authorized runmode (ie does a user need to be a member of a particular
+group) then this method returns the corresponding group name.
+
+=cut
+
+sub is_authz_runmode {
+    my $self = shift;
+    my $runmode = shift;
+
+    foreach my $runmode_info ($self->authz_runmodes) {
+      my ($runmode_test, $group) = @$runmode_info;
+      if (overload::StrVal($runmode_test) =~ /^Regexp=/) {
+	# We were passed a regular expression
+	return $group if $runmode =~ $runmode_test;
+      } elsif (ref $runmode_test && ref $runmode_test eq 'CODE') {
+	# We were passed a code reference
+	return $group if $runmode_test->($runmode);
+      } elsif ($runmode_test eq ':all') {
+	# all runmodes are protected
+	return $group;
+      } else {
+	# assume we were passed a string
+	return $group if $runmode eq $runmode_test;
+      }
+    }
+
+    return undef;
+}
+
 =head2 new
 
 This method creates a new L<CGI::Application::Plugin::Authorization> object.
@@ -473,16 +548,18 @@ sub cgiapp {
     return $_[0]->{cgiapp};
 }
 
+
 =head2 setup_runmodes
 
-This CGI::App method is called during the prerun stage to register the "authz_forbidden" method
-that the Authorization plugin requires in order to function.
+This method is called during the prerun stage to register some custom
+runmodes that the Authentication plugin requires in order to function.
 
 =cut
 
 sub setup_runmodes {
-    my $self   = shift;
-    $self->run_modes( authz_forbidden => \&authz_forbidden, );
+    my $self = shift;
+    $self->cgiapp->run_modes( authz_dummy_redirect => \&authz_dummy_redirect );
+    $self->cgiapp->run_modes( authz_forbidden      => \&authz_forbidden );
     return;
 }
 
@@ -500,6 +577,64 @@ If you are using an older version of CGI::Application you will need to add it yo
  }
 
 =cut
+
+=head2 prerun_callback
+
+This method is a CGI::Application prerun callback that will be
+automatically registered for you if you are using CGI::Application
+4.0 or greater.  If you are using an older version of CGI::Application
+you will have to create your own cgiapp_prerun method and make sure you
+call this method from there.
+
+ sub cgiapp_prerun {
+    my $self = shift;
+
+    $self->CGI::Application::Plugin::Authentication::prerun_callback();
+ }
+
+=cut
+
+sub prerun_callback {
+  my $self = shift;
+  my $authz = $self->authz;
+  my $group = undef;
+
+  # setup the default login and logout runmodes
+  $authz->setup_runmodes;
+
+  if ($group = $authz->is_authz_runmode($self->get_current_runmode)) {
+    # This runmode requires authorization
+    return $self->authz->redirect_to_forbidden
+      unless ( $self->authz->authorize($group) );
+  }
+}
+
+=head2 redirect_to_forbidden
+
+This method is be called during the prerun stage if
+the current user is not authorized, and they are trying to
+access an authz runmode.  It will redirect to the page
+that has been configured as the forbidden page, based on the value
+of FORBIDDEN_RUNMODE or FORBIDDEN_URL  If nothing is configured
+then the default forbidden page will be used.
+
+=cut
+
+sub redirect_to_forbidden {
+    my $self = shift;
+    my $cgiapp = $self->cgiapp;
+    my $config = $self->_config;
+
+    if ($config->{FORBIDDEN_RUNMODE}) {
+      $cgiapp->prerun_mode($config->{FORBIDDEN_RUNMODE});
+    } elsif ($config->{FORBIDDEN_URL}) {
+      $cgiapp->header_add(-location => $config->{FORBIDDEN_URL});
+      $cgiapp->header_type('redirect');
+      $cgiapp->prerun_mode('authz_dummy_redirect');
+    } else {
+      $cgiapp->prerun_mode('authz_forbidden');
+    }
+}
 
 =head2 forbidden
 
@@ -553,6 +688,17 @@ sub authz_forbidden {
     );
 
     return $html;
+}
+
+=head2 authz_dummy_redirect
+
+This runmode is provided for convenience when an external redirect needs
+to be done.  It just returns an empty string.
+
+=cut
+
+sub authz_dummy_redirect {
+    return '';
 }
 
 ###
@@ -610,8 +756,11 @@ In a CGI::Application module:
           }
       ],
   );
-  MyCGIApp->authz->runmode_authz(
-     qr/^admin_/ => 'admin',
+  MyCGIApp->authz->authz_runmodes(
+     [a_runmode => 'a_group'],
+     [qr/^admin_/ => 'admin'],
+     [':all' => 'all_group'],
+     [sub {my $rm = shift; return ($rm eq "dangerous_rm")} => 'super_group'],
   );
 
   # Configure second Authorization module using a named configuration

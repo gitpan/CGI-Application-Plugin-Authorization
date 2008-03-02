@@ -74,16 +74,18 @@ return true if the user belongs to at least one of the groups.
 =cut
 
 sub authorize_user {
-    my $self     = shift;
+    my $self = shift;
     my $username = shift;
-    my @groups   = @_;
+    my @groups = @_;
+
+    return 0 unless defined $username;
 
     foreach my $group (@groups) {
+        next unless defined $group;
         return 1 if ($username eq $group);
     }
     return 0;
 }
-
 
 =head1 SEE ALSO
 

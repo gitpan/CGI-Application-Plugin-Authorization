@@ -15,6 +15,7 @@ t/01_basic.t
 t/02_config.t
 t/03_username.t
 t/04_forbidden.t
+t/05_authz_runmodes.t
 t/50_driver.t
 t/50_driver_dbi.t
 t/50_driver_generic.t

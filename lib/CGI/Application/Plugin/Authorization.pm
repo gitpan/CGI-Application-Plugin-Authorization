@@ -2,12 +2,13 @@ package CGI::Application::Plugin::Authorization;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 our %__CONFIG;
 
 use UNIVERSAL::require;
 use Scalar::Util;
+use List::Util qw(first);
 use Carp;
 
 sub import {
@@ -306,14 +307,28 @@ sub config {
 
 =head2 authz_runmodes
 
-This method takes a list of runmodes that are to be authorized.  If a
-user tries to access one of these runmodes, then they will be
-redirected to the forbidden page unless they are a member of the
-proper group.  The runmode names can be a list of simple strings,
-regular expressions, or special directives that start with a colon.
+This method takes a list of runmodes that are to be authorized, and
+the authorization rules for said runmodes.  If a user tries to access
+one of these runmodes, then they will be redirected to the forbidden
+page unless authorization is granted.
+
+The runmode names can be simple strings, regular expressions, coderefs
+(which are passed the name of the runmode as their only parameter), or
+special directives that start with a colon.
+
+The authorization rules can be simple strings representing the name of
+the group that the user must be a member of, as a list-ref of group
+names (of which the user only has to be a member of B<any one of the
+groups>, or as a code-ref that will be called (with I<no> parameters).
+
 This method is cumulative, so if it is called multiple times, the new
-values are added to existing entries.  It returns a list of all
-entries that have been saved so far.
+values are appended to the list of existing entries.  It returns a list
+containing all of the entries that have been configured thus far.
+
+B<NOTE:> compatibility with the interface as was defined in 0.06 B<is>
+preserved.  0.06 allowed for runmodes to be passed in as a list-ref of
+two-element lists to specify authorization rules.  Although this
+interface is supported, the extra list-refs aren't necessary.
 
 =over 4
 
@@ -322,18 +337,30 @@ entries that have been saved so far.
 =back
 
   # match all runmodes
-  __PACKAGE__->authz->authz_runmodes([':all' => 'admin']);
+  __PACKAGE__->authz->authz_runmodes(
+      ':all' => 'admin',
+      );
 
   # only protect runmodes one and two
-  __PACKAGE__->authz->authz_runmodes([one => 'admin'],
-                                     [two => 'admin'],
-                                    );
+  __PACKAGE__->authz->authz_runmodes(
+      one => 'admin',
+      two => 'admin',
+      );
 
   # protect only runmodes that start with auth_
-  __PACKAGE__->authz->authz_runmodes([qr/^authz_/ => 'admin');
+  __PACKAGE__->authz->authz_runmodes(
+      qr/^authz_/ => 'admin',
+      );
 
   # protect all runmodes that *do not* start with public_
-  __PACKAGE__->authz->authz_runmodes([qr/^(?!public_)/ => 'admin']);
+  __PACKAGE__->authz->authz_runmodes(
+      qr/^(?!public_)/ => 'admin',
+      );
+
+  # preserve the interface from 0.06:
+  __PACKAGE__->authz->authz_runmodes(
+      [':all' => 'admin'],
+      );
 
 =cut
 
@@ -342,16 +369,37 @@ sub authz_runmodes {
     my $config = $self->_config;
 
     $config->{AUTHZ_RUNMODES} ||= [];
-    push @{$config->{AUTHZ_RUNMODES}}, @_ if @_;
+
+    while (@_) {
+      my ($rm, $group);
+
+      # extract next runmode/authz rule from args
+      if (ref($_[0]) eq 'ARRAY') {
+        # 0.06 interface; list-ref
+        my $rule = shift @_;
+        ($rm, $group) = @{$rule};
+      }
+      else {
+        # new interface; list
+        $rm = shift @_;
+        $group = shift @_;
+      }
+
+      # add authz rule to our config
+      push( @{$config->{AUTHZ_RUNMODES}}, [$rm, $group] );
+    }
 
     return @{$config->{AUTHZ_RUNMODES}};
 }
 
 =head2 is_authz_runmode
 
-This method accepts the name of a runmode, and if that runmode is a
-authorized runmode (ie does a user need to be a member of a particular
-group) then this method returns the corresponding group name.
+This method accepts the name of a runmode, and if that runmode requires
+authorization (ie the user needs to be a member of a particular group
+or has to satisfy some other authorization rule) then this method
+returns the corresponding authorization rule which must be satisfied
+(which could be either a scalar, a list-ref, or a code-ref, depending
+on how the rules were defined).
 
 =cut
 
@@ -360,19 +408,19 @@ sub is_authz_runmode {
     my $runmode = shift;
 
     foreach my $runmode_info ($self->authz_runmodes) {
-      my ($runmode_test, $group) = @$runmode_info;
+      my ($runmode_test, $rule) = @$runmode_info;
       if (overload::StrVal($runmode_test) =~ /^Regexp=/) {
 	# We were passed a regular expression
-	return $group if $runmode =~ $runmode_test;
+	return $rule if $runmode =~ $runmode_test;
       } elsif (ref $runmode_test && ref $runmode_test eq 'CODE') {
 	# We were passed a code reference
-	return $group if $runmode_test->($runmode);
+	return $rule if $runmode_test->($runmode);
       } elsif ($runmode_test eq ':all') {
 	# all runmodes are protected
-	return $group;
+	return $rule;
       } else {
 	# assume we were passed a string
-	return $group if $runmode eq $runmode_test;
+	return $rule if $runmode eq $runmode_test;
       }
     }
 
@@ -589,7 +637,7 @@ call this method from there.
  sub cgiapp_prerun {
     my $self = shift;
 
-    $self->CGI::Application::Plugin::Authentication::prerun_callback();
+    $self->CGI::Application::Plugin::Authorization::prerun_callback();
  }
 
 =cut
@@ -597,15 +645,18 @@ call this method from there.
 sub prerun_callback {
   my $self = shift;
   my $authz = $self->authz;
-  my $group = undef;
+  my $rule = undef;
 
   # setup the default login and logout runmodes
   $authz->setup_runmodes;
 
-  if ($group = $authz->is_authz_runmode($self->get_current_runmode)) {
+  if ($rule = $authz->is_authz_runmode($self->get_current_runmode)) {
     # This runmode requires authorization
+    my $authz_ok = ref($rule) eq 'CODE'   ? $rule->()
+                 : ref($rule) eq 'ARRAY'  ? first { $self->authz->authorize($_) } @{$rule}
+                 :                          $self->authz->authorize($rule);
     return $self->authz->redirect_to_forbidden
-      unless ( $self->authz->authorize($group) );
+      unless ($authz_ok);
   }
 }
 

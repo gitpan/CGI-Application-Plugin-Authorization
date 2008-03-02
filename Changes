@@ -1,6 +1,14 @@
 Revision history for Perl extension CGI::Application::Plugin::Authorization.
 
-0.06  
+0.07
+
+    - Allow for code-refs to be provided to 'authz_runmodes', so that you can
+      create more elaborate authorization restrictions.
+    - Rebuilt/simplified test suite for 'authz_runmodes'.
+    - squelch 'uninitialized value' warnings in SimpleGroup Driver
+      (matt -at- summersault.com)
+
+0.06
 
     - Add 'authz_runmodes' method which can register runmodes that should
       be protected (George Hartzell)
